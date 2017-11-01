@@ -1,5 +1,10 @@
 <html> <head>
 
+<script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous"></script>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
   integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
   crossorigin=""/>
@@ -8,13 +13,111 @@
    integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log=="
    crossorigin=""></script>
 
-<script type="text/javascript"
-  src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.jsx"></script>
+<title>Popular Karaoke Bars</title>
 
 </head>
 <body>
 
-<div id="map"></div>
+<div id="mapid" style="width: 600px; height: 400px;"></div>
+
+<script>
+
+  //
+  // Leaflet setup block
+  //
+
+  var mymap = L.map('mapid').locate({setView: true, maxZoom: 16});
+
+  function configureMap(key, token) {
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+      attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+      maxZoom: 18,
+      id: 'mapbox.streets',
+      worldCopyJump: true,
+      accessToken: token,
+    }).addTo(mymap);
+
+    // Adding location found listener to add geolocation
+    function onLocationFound(e) {
+      /*
+        Listener to create a point at geolocatin and a circle to indicate
+      */
+      console.log("Geolocation found at: " + e.latlng.lat, e.latlng.lng);
+      populateMarker("You're ", e.latlng.lat, e.latlng.lng, key);
+
+      var circle = L.circle([e.latlng.lat, e.latlng.lng], {
+        fillOpacity: 0.5,
+        radius: 20
+      }).addTo(mymap);
+    }
+
+    // Register listener on map
+    mymap.on('locationfound', onLocationFound);
+  }
+
+
+  //
+  // AJAX block
+  //
+
+  $.getJSON( "/_request", function(data) {
+    /*
+      This grabs the POI data from flask and gets keys
+    */
+
+    var MAPBOX_TOKEN = String(data.box_token);
+    var MAPQUEST_KEY = String(data.quest_key);
+
+    console.log("Using Mapbox layer token: " + MAPBOX_TOKEN);
+    console.log("Using Mapquest API key: " + MAPQUEST_KEY);
+    console.log("/_points json data received: " + data.results.length + " places");
+
+    // Configure map layer and geolocation listener
+    configureMap(MAPQUEST_KEY, MAPBOX_TOKEN);
+
+    // Get POI and street data then create marker
+    for (var i = 0; i < data.results.length; i++) {
+
+      var [desc, lat, lon] = [data.results[i][0],
+                              data.results[i][1],
+                              data.results[i][2]];
+
+      console.log("Got POI: " + desc, lat, lon);
+
+      populateMarker(desc, lat, lon, MAPQUEST_KEY);
+
+    }
+  });
+
+  function populateMarker(desc, lat, lon, key) {
+    /*
+      This function is used to avoid scope issues I was having with nested
+      async calls and is apprently more efficient
+
+      It grabs the reverse geo data from the lat and lon and then adds the
+      marker with a popup to the map
+
+      https://coderwall.com/p/kfx9pa/avoiding-nested-asynchronous-calls-in-js
+    */
+    var innerStreet = "";
+    $.getJSON("http://www.mapquestapi.com/geocoding/v1/reverse?key=" +
+              key +
+              "&location=" + lat + "," + lon +
+              "&includeRoadMetadata=true&includeNearestIntersection=true")
+      .done(function(data) {
+
+        innerStreet = String(data.results[0].locations[0].street);
+        console.log("Mapquest json data received: " +
+                    innerStreet +
+                    " at " + lon + ", " + lat);
+
+        L.marker([lat, lon])
+          .bindPopup(desc + " located at " + innerStreet)
+          .addTo(mymap);
+      });
+  }
+
+</script>
 
 </body>
 </html>
