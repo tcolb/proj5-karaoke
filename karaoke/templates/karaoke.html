@@ -40,7 +40,7 @@
       accessToken: token,
     }).addTo(mymap);
 
-    // Adding location found listener to add geolocation
+    // Adding location found listener to add geolocation marker
     function onLocationFound(e) {
       /*
         Listener to create a point at geolocatin and a circle to indicate
@@ -53,7 +53,6 @@
         radius: 20
       }).addTo(mymap);
     }
-
     // Register listener on map
     mymap.on('locationfound', onLocationFound);
   }

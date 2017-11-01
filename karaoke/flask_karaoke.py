@@ -9,6 +9,7 @@ app.secret_key = CONFIG.SECRET_KEY
 FILE_NAME = CONFIG.FILE_NAME
 MAPBOX_TOKEN = CONFIG.MAPBOX_TOKEN
 MAPQUEST_KEY = CONFIG.MAPQUEST_KEY
+PORTNUM = CONFIG.PORTNUM
 
 @app.route("/")
 def index():
@@ -27,4 +28,4 @@ def points():
 
 if __name__ == "__main__":
     app.debug = True
-    app.run(port=8080, host="0.0.0.0")
+    app.run(port=PORTNUM, host="0.0.0.0")
